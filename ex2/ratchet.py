@@ -1,6 +1,4 @@
-import os
 from typing import Tuple
-import os
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import hashes, hmac
@@ -20,19 +18,10 @@ def kdf_rk(rk, dh_out):
     chain_key = key[32:]
     return root_key, chain_key
 
-def kdf_ck(ck):
 
-    h1 = hmac.HMAC(ck, hashes.SHA256())
-    h1.update(b'\x01')
-    message_key = h1.finalize()
 
-    h2 = hmac.HMAC(ck, hashes.SHA256())
-    h2.update(b'\x02')
-    next_chain_key = h2.finalize()
 
-    return message_key, next_chain_key
-
-def symmetric_ratchet(constant: bytes, chain_key: bytes) -> Tuple[bytes, bytes]:
+def symmetric_ratchet(chain_key: bytes) -> Tuple[bytes, bytes]:
     """Symmetric key ratchet
     https://signal.org/docs/specifications/doubleratchet/#symmetric-key-ratchet
     https://signal.org/docs/specifications/doubleratchet/#recommended-cryptographic-algorithms
@@ -45,7 +34,14 @@ def symmetric_ratchet(constant: bytes, chain_key: bytes) -> Tuple[bytes, bytes]:
     Returns:
         Tuple[bytes, bytes]: new chain_key, message_key
     """
-    message_key, next_chain_key = kdf_ck(chain_key)
+    h1 = hmac.HMAC(chain_key, hashes.SHA256())
+    h1.update(b'\x01')
+    message_key = h1.finalize()
+
+    h2 = hmac.HMAC(chain_key, hashes.SHA256())
+    h2.update(b'\x02')
+    next_chain_key = h2.finalize()
+
     return message_key, next_chain_key
 
 
