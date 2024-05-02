@@ -82,7 +82,7 @@ if __name__ == "__main__":
     plain_text = decrypt_message(cipher_text, root_key)
     print("alice decrypts: "+str(plain_text))
 
-    message_key, chain_key = symmetric_ratchet(constant, chain_key)
+    message_key, chain_key = symmetric_ratchet(chain_key)
 
     message_2 = b"I am good."
     cipher_text = encrypt_message(message_2, message_key)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     plain_text = decrypt_message(cipher_text, message_key)
     print("bob decrypts: "+str(plain_text))
 
-    message_key, chain_key = symmetric_ratchet(constant, chain_key)
+    message_key, chain_key = symmetric_ratchet(chain_key)
 
     message_3 = b"I am also fine, what are you currently doing?"
     cipher_text = encrypt_message(message_3, message_key)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     plain_text = decrypt_message(cipher_text, message_key)
     print("alice decrypts: "+str(plain_text))
 
-    message_key, chain_key = symmetric_ratchet(constant, chain_key)
+    message_key, chain_key = symmetric_ratchet(chain_key)
 
     message_4 = b"I am working on the NetSec homework."
     cipher_text = encrypt_message(message_4, message_key)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     plain_text = decrypt_message(cipher_text, message_key)
     print("bob decrypts: "+str(plain_text))
 
-    message_key, chain_key = symmetric_ratchet(constant, chain_key)
+    message_key, chain_key = symmetric_ratchet(chain_key)
 
     message_5 = b"Then goood luck with it!"
     cipher_text = encrypt_message(message_5, message_key)
@@ -118,5 +118,5 @@ if __name__ == "__main__":
     plain_text = decrypt_message(cipher_text, message_key)
     print("alice decrypts: "+str(plain_text))
 
-    message_key, chain_key = symmetric_ratchet(constant, chain_key)
+    message_key, chain_key = symmetric_ratchet(chain_key)
 
