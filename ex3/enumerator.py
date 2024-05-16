@@ -1,5 +1,4 @@
 import socket
-import time
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -19,30 +18,25 @@ if __name__ == "__main__":
     HOST = "195.37.209.19"
     PORT = 7213
     ip_list = []
-
     for i in range(16):
         for j in range(256):
             ip = "0a00{:02x}{:02x}".format(i, j)
             header = bytes.fromhex("01" + ip + "07e50004")
             mac = calculate_mac(header)
-            list_files_command = "770473840100012e"
+            list_files_command = "0100012e"
             data_request_hex = header.hex() + mac.hex() + list_files_command
 
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-                    client_socket.connect((HOST, PORT))
-                    print(ip)
-                    client_socket.sendall(
-                        bytes.fromhex(data_request_hex.replace(" ", ""))
-                    )
-                    response = client_socket.recv(4096)
-                    if response:
-                        ip_list.append(ip)
-                        logging.info(
-                            "Data response from server for IP %s: %s", ip, response
-                        )
-            except socket.error as e:
-                logging.error("Socket error occurred: %s", e)
-                # Reconnecting logic can be added here if needed
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((HOST, PORT))
+            client_socket.sendall(
+                bytes.fromhex(data_request_hex)
+            )
+            response = client_socket.recv(4096)
+            print(response)
+            if response:
+                ip_list.append(ip)
+                logging.info(
+                    "Data response from server for IP %s: %s", ip, response
+                )
 
     logging.info("IPs with successful responses: %s", ip_list)
