@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 logging.basicConfig(level=logging.INFO)
 
 
-# Calculate MAC
 def calculate_mac(header_data: bytes, key=(0x7C, 0x38, 0x91, 0x80)) -> bytes:
     mac = []
     mac.append(key[0] ^ header_data[0] ^ header_data[1] ^ header_data[2])
