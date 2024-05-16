@@ -1,5 +1,5 @@
 """
-exercise 3.2.1
+exercise 3: Protocol Security
 @Authors: Noah Link, Jan Pfeifer, Julian Weske
 """
 

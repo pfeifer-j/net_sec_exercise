@@ -1,3 +1,8 @@
+"""
+exercise 3: Protocol Security
+@Authors: Noah Link, Jan Pfeifer, Julian Weske
+"""
+
 import socket
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -30,6 +35,7 @@ def process_ip(ip, host, port):
         return None
 
 
+# exercise 3.2.2
 if __name__ == "__main__":
     HOST = "195.37.209.19"
     PORT = 7213
