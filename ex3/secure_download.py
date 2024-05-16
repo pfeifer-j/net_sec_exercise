@@ -18,6 +18,7 @@ if __name__ == "__main__":
 
         # Send data request to the server
         data_request_hex = "010a00013d07e50004770473840100012e"
+        #                   010a00000407e50004773c73840100012e
         client_socket.sendall(bytes.fromhex(data_request_hex))
         print("Data request sent: ", bytes.fromhex(data_request_hex))
         response = client_socket.recv(4096)
