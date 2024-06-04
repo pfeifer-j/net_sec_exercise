@@ -12,7 +12,9 @@ def create_tls_socket(server_hostname):
     context.verify_mode = ssl.CERT_REQUIRED
 
     # Load CA certificates (root certificate)
-    context.load_verify_locations(cafile="/etc/ssl/certs/ca-certificates.crt")
+    cadir = "./certs"
+    # context.load_verify_locations(cafile="./certs/ca-certificates.crt")
+    context.load_verify_locations(capath=cadir)
 
     # Wrap the socket into an SSLSocket
     try:
