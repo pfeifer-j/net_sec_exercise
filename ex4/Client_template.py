@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 import socket, ssl, sys, pprint
 
-hostname = sys.argv[1]
-port = 443
-cadir = './certs'
+hostname = "0.0.0.0"
+port = 4433
+cadir = "./openssl"
 
 
 # Create TCP connection
-#1
+#
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((hostname, port))
 
