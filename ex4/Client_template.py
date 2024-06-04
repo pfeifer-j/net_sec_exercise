@@ -3,7 +3,7 @@ import socket, ssl, sys, pprint
 
 hostname = sys.argv[1]
 port = 443
-cadir = '/etc/ssl/certs'
+cadir = './certs'
 
 
 # Create TCP connection
