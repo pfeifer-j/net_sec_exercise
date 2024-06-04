@@ -8,18 +8,19 @@ cadir = '/etc/ssl/certs'
 
 # Create TCP connection
 #1
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((hostname, port))
 
 
 # Set up the TLS context
-context = ssl.SSLContext(#2) # For Ubuntu 20.04 VM !
-context.load_verify_locations(#3)
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+context.load_verify_locations(capath=cadir)
 context.verify_mode = ssl.CERT_REQUIRED
 context.check_hostname = True
 
 
 # Add the TLS
-ssock = context.wrap_socket(#4)
+ssock = context.wrap_socket(sock, server_hostname=hostname)
 
 # Start the handshake
 ssock.do_handshake()
