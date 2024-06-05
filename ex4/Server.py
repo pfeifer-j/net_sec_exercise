@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# Server
 import socket
 import ssl
 
@@ -10,12 +9,14 @@ HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
 
 SERVER_CERT = "./openssl/server.crt"
 SERVER_PRIVATE = "./openssl/server.key"
+CA_CERT = "./openssl/ca.crt"
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain(SERVER_CERT, SERVER_PRIVATE)
+context.load_cert_chain(certfile=SERVER_CERT, keyfile=SERVER_PRIVATE)
+context.load_verify_locations(cafile=CA_CERT)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-sock.bind(("localhost", 4437))
+sock.bind(("localhost", 4437))  # Bind to port 4437
 sock.listen(5)
 
 print("Server is running...")
