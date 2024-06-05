@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-# Client
-import socket, ssl, sys
+import socket
+import ssl
+import sys
 
 hostname = "localhost"
 port = 4436
-
 
 cafile = "./openssl/ca.crt"
 

@@ -8,7 +8,7 @@ HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
 <!DOCTYPE html><html><body><h1>Hello, world!</h1></body></html>
 """
 
-SERVER_CERT = "./openssl/server.crt"
+SERVER_CERT = "./openssl/server_chain.crt"
 SERVER_PRIVATE = "./openssl/server.key"
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
