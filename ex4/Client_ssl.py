@@ -3,7 +3,7 @@
 import socket, ssl
 
 hostname = "localhost"  # Use "localhost" or the actual server's hostname
-port = 8080
+port = 4433
 # port = 8080
 
 cafile = "./openssl/ca.crt"
