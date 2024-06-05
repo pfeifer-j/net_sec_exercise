@@ -2,9 +2,9 @@
 import socket, ssl
 
 hostname = "localhost"  # Use "localhost" or the actual server's hostname
-port = 4433
-# cafile = "./openssl/ca.crt"
-cafile = "/etc/ssl/certs/ca-certificates.crt"
+port = 4435
+cafile = "./openssl/ca.crt"
+# cafile = "/etc/ssl/certs/ca-certificates.crt"
 
 # Create TCP connection
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
