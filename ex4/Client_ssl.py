@@ -1,8 +1,11 @@
 #!/usr/bin/python3
+# Client
 import socket, ssl
 
 hostname = "localhost"  # Use "localhost" or the actual server's hostname
-port = 4435
+port = 8080
+# port = 8080
+
 cafile = "./openssl/ca.crt"
 # cafile = "/etc/ssl/certs/ca-certificates.crt"
 
