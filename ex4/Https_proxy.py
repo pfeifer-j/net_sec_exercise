@@ -65,6 +65,7 @@ def process_request(ssock_for_browser, context_client):
         # Forward request to server
         sock_for_server.sendall(request)
         logger.info("Response sent to client")
+        logger.info(request)
         response = sock_for_server.recv(2048)
 
         # Get response from server, and forward it to browser
