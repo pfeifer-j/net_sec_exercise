@@ -3,6 +3,7 @@
 import socket
 import ssl
 import threading
+import logging
 
 # Constants
 LOCAL_HOST = "localhost"
@@ -14,9 +15,12 @@ SERVER_PORT = 4437
 SERVER_CERT = "./openssl/proxy.crt"
 SERVER_PRIVATE = "./openssl/proxy.key"
 
-
 # CA certificate for verifying the server's certificate
 CA_CERT = "./openssl/ca.crt"
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -31,28 +35,22 @@ def main():
 
     # Load client certificate settings for connecting to the actual server
     context_client = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context_client.load_verify_locations(cafile="./openssl/proxy.crt")
+    context_client.load_verify_locations(cafile="./openssl/ca.crt")
+    context_client.load_cert_chain(
+        certfile="./openssl/proxy.crt", keyfile="./openssl/proxy.key"
+    )
 
-    print("Proxy server is running...")
+    logger.info("Proxy server is running...")
 
     while True:
         sock_for_browser, fromaddr = client_sock.accept()
-        ssock_for_browser = context_server.wrap_socket(sock_for_browser,
-                                               server_side=True)
-        x = threading.Thread(target=process_request,
-                             args=(ssock_for_browser,))
+        ssock_for_browser = context_server.wrap_socket(
+            sock_for_browser, server_side=True
+        )
+        x = threading.Thread(
+            target=process_request, args=(ssock_for_browser, context_client)
+        )
         x.start()
-
-        # Accept incoming connections from the client
-        # client_conn, client_addr = client_sock.accept()
-
-        # Receive data from the client
-        # client_data = client_conn.recv(4096)
-        #client_conn, client_addr = client_sock.accept()
-        #with context_server.wrap_socket(client_conn, server_side=True) as ssock_client:
-        #    client_data = ssock_client.recv(4096)
-
-
 
 
 def process_request(ssock_for_browser, context_client):
@@ -66,6 +64,7 @@ def process_request(ssock_for_browser, context_client):
     if request:
         # Forward request to server
         sock_for_server.sendall(request)
+        logger.info("Response sent to client")
         response = sock_for_server.recv(2048)
 
         # Get response from server, and forward it to browser
@@ -74,8 +73,6 @@ def process_request(ssock_for_browser, context_client):
             response = sock_for_server.recv(2048)
     ssock_for_browser.shutdown(socket.SHUT_RDWR)
     ssock_for_browser.close()
-
-
 
 
 if __name__ == "__main__":
