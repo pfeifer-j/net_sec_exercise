@@ -12,7 +12,8 @@ def create_tls_socket(server_hostname):
     context.verify_mode = ssl.CERT_REQUIRED
 
     # Load CA certificates (root certificate)
-    cadir = "./certs"
+    cadir = "./openssl"
+    cafile = "./openssl/ca.crt"
     # context.load_verify_locations(cafile="./certs/ca-certificates.crt")
     context.load_verify_locations(capath=cadir)
 
@@ -29,12 +30,12 @@ def create_tls_socket(server_hostname):
 
 if __name__ == "__main__":
 
-    server_hostname = "www.example.com"
+    server_hostname = "localhost"
     secure_socket = create_tls_socket(server_hostname)
 
     # Now you can use secure_socket to communicate with the server
     # For example, connect to an HTTPS-based web server:
-    secure_socket.connect((server_hostname, 443))
+    secure_socket.connect((server_hostname, 4433))
     secure_socket.sendall(
         b"GET / HTTP/1.1\r\nHost: " + server_hostname.encode() + b"\r\n\r\n"
     )
