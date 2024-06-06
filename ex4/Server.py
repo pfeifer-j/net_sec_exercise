@@ -19,10 +19,9 @@ HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain(certfile=SERVER_CERT, keyfile=SERVER_PRIVATE)
-context.load_verify_locations(cafile=CA_CERT)
-
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)  # For Ubuntu 20.04 VM
+context.load_cert_chain(SERVER_CERT, SERVER_PRIVATE)
+context.load_verify_locations(CA_CERT)  # This line is important
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
 sock.bind((SERVER_NAME, SERVER_PORT))  # Bind to port 4437
 sock.listen(5)

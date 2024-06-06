@@ -1,26 +1,30 @@
 #!/usr/bin/python3
-# Client
-import socket, ssl
+import socket, ssl, sys
+import logging
 
-hostname = "localhost"  # Use "localhost" or the actual server's hostname
-port = 4433
-# port = 8080
 
+hostname = "localhost"
+port = 4437
 cafile = "./openssl/ca.crt"
-# cafile = "/etc/ssl/certs/ca-certificates.crt"
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create TCP connection
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # 1
 sock.connect((hostname, port))
 
+
 # Set up the TLS context
-context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-context.load_verify_locations(cafile=cafile)
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # 2) # For Ubuntu 20.04 VM !
+context.load_verify_locations(cafile=cafile)  # 3)
 context.verify_mode = ssl.CERT_REQUIRED
-context.check_hostname = True
+context.check_hostname = True  # Works with False
+
 
 # Add the TLS
-ssock = context.wrap_socket(sock, server_hostname=hostname)
+ssock = context.wrap_socket(sock, server_hostname=hostname)  # 4)
 
 # Start the handshake
 try:
@@ -32,7 +36,10 @@ except ssl.SSLError as e:
     sys.exit(1)
 
 # Send a request and receive the response
-ssock.sendall(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+request = b"GET / HTTP/1.1\r\username: test@uni.de \r\n password: test\r\n\r\n"
+logger.info(request)
+ssock.sendall(request)
+
 print(ssock.recv(1024).decode())
 
 # Close the TLS Connection
