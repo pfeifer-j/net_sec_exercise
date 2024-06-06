@@ -4,8 +4,8 @@ import logging
 
 
 hostname = "localhost"
-port = 4437
-cafile = "./openssl/ca.crt"
+port = 4431
+cafile = "./certs/ca.crt"
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

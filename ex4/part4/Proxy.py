@@ -8,13 +8,13 @@ import logging
 # Constants
 LOCAL_HOST = "localhost"
 CLIENT_PORT = 4431
-SERVER_NAME = "localhost"
+SERVER_HOST = "localhost"
 SERVER_PORT = 4432
 
 # Server certificate and private key
-CERT_PATH = "./openssl/"
-SERVER_CERT = CERT_PATH + "proxy.crt"
-SERVER_PRIVATE = CERT_PATH + "proxy.key"
+CERT_PATH = "./certs/"
+PROXY_CERT = CERT_PATH + "proxy.crt"
+PROXY_PRIVATE = CERT_PATH + "proxy.key"
 CA_CERT = CERT_PATH + "ca.crt"
 
 # Set up logging
@@ -30,14 +30,12 @@ def main():
 
     # Load server certificate and private key
     context_server = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context_server.load_cert_chain(SERVER_CERT, SERVER_PRIVATE)
+    context_server.load_cert_chain(PROXY_CERT, PROXY_PRIVATE)
 
     # Load client certificate settings for connecting to the actual server
     context_client = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context_client.load_verify_locations(cafile="./openssl/ca.crt")
-    context_client.load_cert_chain(
-        certfile="./openssl/proxy.crt", keyfile="./openssl/proxy.key"
-    )
+    context_client.load_verify_locations(CA_CERT)
+    context_client.load_cert_chain(PROXY_CERT, PROXY_PRIVATE)
 
     logger.info("Proxy server is running...")
 

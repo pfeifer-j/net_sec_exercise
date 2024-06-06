@@ -4,11 +4,12 @@ import ssl
 import logging
 
 SERVER_NAME = "localhost"
-SERVER_PORT = 4432
+SERVER_PORT = 4433
 
-SERVER_CERT = "./openssl/server.crt"
-SERVER_PRIVATE = "./openssl/server.key"
-CA_CERT = "./openssl/ca.crt"
+CERT_PATH = "./certs/"
+SERVER_CERT = CERT_PATH + "server.crt"
+SERVER_PRIVATE = CERT_PATH + "server.key"
+CA_CERT = CERT_PATH + "ca.crt"
 
 html = """
 HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
