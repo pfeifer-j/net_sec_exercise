@@ -249,3 +249,8 @@ Certificate:
 (base) cybernovo@CyberNovo:~/Documents/Programming/net_sec_exercise/ex4/openssl$ 
 
 
+
+
+
+openssl req -new -key proxy.key -out proxy.csr -subj "/CN=www.mindfactory.de"
+openssl x509 -req -in proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out proxy.crt -days 365 -sha256
