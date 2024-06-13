@@ -9,6 +9,26 @@ openssl x509 -req -in proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out pr
 
 
 
+openssl genrsa -out ca.key 2048
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca.crt -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=CA/CN=CA"
+openssl genrsa -out proxy.key 2048
+openssl req -new -key proxy.key -out proxy.csr -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=Proxy/CN=proxy"
+openssl x509 -req -in proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out proxy.crt -days 365 -sha256
+openssl genrsa -out mindfactory.key 2048
+openssl req -new -key mindfactory.key -out mindfactory.csr -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=Server/CN=www.mindfactory.de"
+openssl x509 -req -in mindfactory.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mindfactory.crt -days 365 -sha256
+openssl genrsa -out ca.key 2048
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca.crt -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=CA/CN=CA"
+openssl genrsa -out proxy.key 2048
+openssl req -new -key proxy.key -out proxy.csr -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=Proxy/CN=proxy"
+openssl x509 -req -in proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out proxy.crt -days 365 -sha256
+openssl genrsa -out mindfactory.key 2048
+openssl req -new -key mindfactory.key -out mindfactory.csr -subj "/C=DE/ST=Some-State/L=Locality/O=Organization/OU=Server/CN=www.mindfactory.de"
+openssl x509 -req -in mindfactory.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mindfactory.crt -days 365 -sha256
+
+
+
+
 (base) cybernovo@CyberNovo:~/Documents/Programming/net_sec_exercise/ex4/new$ openssl genpkey -algorithm RSA -out ca.key
 #
 ........+.+.....+....+...........+......+.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*...+.....+......+.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*...........+.........+..+.........+....+..............+...+....+..................+...+...+..............+......+...............+......+.+............+...+...+..+.........+.........................+...+.....+......+.......+..+......+.+...+...........+.+.........+.........+..+.+..+.......+...+...........+.........+.............+..+.......+......+.....+....+........+......+.+...+...+...............+............+.....+.............+..+.+.....+......+....+......+.....+....+.................+.......+...+.....+...+....+..+.+..+...+............+.+..+......................+............+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

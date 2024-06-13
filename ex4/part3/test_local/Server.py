@@ -13,7 +13,7 @@ CA_CERT = CERT_PATH + "ca.crt"
 
 html = """
 HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
-<!DOCTYPE html><html><body><h1>Hello, world!</h1></body></html>
+<!DOCTYPE html><html><body><h1>I hope nobody steals those credentials</h1></body></html>
 """
 
 # Set up logging

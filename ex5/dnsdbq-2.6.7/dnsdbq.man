@@ -1,0 +1,671 @@
+.\" Copyright (c) 2014-2021 by Farsight Security, Inc.
+.\"
+.\" Licensed under the Apache License, Version 2.0 (the "License");
+.\" you may not use this file except in compliance with the License.
+.\" You may obtain a copy of the License at
+.\"
+.\"  http://www.apache.org/licenses/LICENSE-2.0
+.\"
+.\" Unless required by applicable law or agreed to in writing, software
+.\" distributed under the License is distributed on an "AS IS" BASIS,
+.\" WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+.\" See the License for the specific language governing permissions and
+.\" limitations under the License.
+.\"
+.Dd 2018-01-30
+.Dt dnsdbq 1 DNSDB
+.Os " "
+.Sh NAME
+.Nm dnsdbq
+.Nd DNSDB query tool
+.Sh SYNOPSIS
+.Nm dnsdbq
+.Op Fl acdfgGhIjmqSsUv468
+.Op Fl A Ar timestamp
+.Op Fl B Ar timestamp
+.Op Fl b Ar bailiwick
+.Op Fl D Ar asn_domain
+.Op Fl i Ar ip
+.Op Fl J Ar input_file
+.Op Fl k Ar sort_keys
+.Op Fl L Ar output_limit
+.Op Fl l Ar query_limit
+.Op Fl M Ar max_count
+.Op Fl C Ar cookie_file
+.Op Fl N Ar hex[/rrtype[,...]]
+.Op Fl n Ar name[/rrtype[,...]]
+.Op Fl O Ar offset
+.Op Fl o Ar timeout
+.Op Fl p Ar output_type
+.Op Fl R Ar hex[/rrtype[,...][/bailiwick]]
+.Op Fl r Ar name[/rrtype[,...][/bailiwick]]
+.Op Fl T Ar transform[,...]
+.Op Fl t Ar rrtype[,...]
+.Op Fl u Ar server_sys
+.Op Fl V Ar verb
+.Op Fl 0 Ar function=thing
+.Sh DESCRIPTION
+.Nm dnsdbq
+constructs and issues queries to Passive DNS systems which return data
+in the IETF Passive DNS Common Output Format.  It is commonly used as
+a production command line interface to such systems.
+.Pp
+.Nm dnsdbq
+displays responses in various formats.  Its default query type is a
+"lookup" query.  As an option, it can issue a "summarize" query type.
+Different Passive DNS systems or versions of those systems may
+implement different query features.
+.Sh FARSIGHT SECURITY'S "DNSDB"
+Farsight Security's "DNSDB" is one such Passive DNS system which is
+accessed by specifying system "dnsdb".
+.Pp
+You'll need to get an API key from Farsight to use
+.Ic dnsdbq
+with DNSDB.
+.Pp
+Farsight's passive DNS infrastructure performs a complex process
+of "bailiwick reconstruction" where an RRset's position within the DNS
+hierarchy is approximated. This serves two purposes:
+.Bl -enum -offset indent
+.It
+Provide context of the location of a given DNS record within the DNS hierarchy.
+.It
+Prevent "untrustworthy" records that are a result of intentional or
+unintentional cache poisoning attempts from being replicated by downstream
+consumers.
+.El
+.Pp
+For example, given the fully qualified domain name
+.Ic www.dachshund.example.com ,
+valid bailiwicks would be
+.Ic dachshund.example.com ,
+.Ic example.com ,
+or
+.Ic com .
+.Sh OPTIONS
+.Bl -tag -width 3n
+.It Fl a
+enables ASINFO/CIDR annotation for IP addresses in A (IPv4 address) RRsets.
+The metadata thus appended depends on which data source is given by
+.Fl D .
+.It Fl A Ar timestamp
+Specify a forward time fence. Only results seen by the passive DNS
+on or after this time will be selected. See also
+.Fl c .
+See the TIMESTAMP FORMATS section for more information about this.
+.It Fl B Ar timestamp
+Specify a backward time fence. Only results seen by the passive DNS
+sensor network on or before this time will be selected. See also
+.Fl c .
+See the TIMESTAMP FORMATS section for more information about this.
+.It Fl b Ar bailiwick
+specify bailiwick (only valid with
+.Fl r
+queries).
+.It Fl c
+by default,
+.Fl A
+and
+.Fl B
+(separately or together) will select partial overlaps of database tuples and
+time search criteria. To match only completely bracketed tuples, add the
+.Fl c
+("completeness") flag (this is also known as "strict" mode). Can only be
+specified once, and for reasons of geometry, affects both
+.Fl A
+and
+.Fl B
+if both are specified.
+.It Fl C
+specify a cookie file to be used by libcurl (read-only; analogous to
+.Xr curl 1
+-b). Typically this will be used for service authentication.
+.It Fl D
+specify the data source for ASINFO/CIDR annotations, if enabled by
+.Fl a .
+Default is
+.Ic "asn.routeviews.org" ,
+but you may wish to try
+.Ic "aspath.routeviews.org" .
+.It Fl d
+enable debug mode.  Repeat for more debug output.
+.It Fl f
+specify batch lookup mode allowing one or more queries to be performed.
+Queries will be read from standard input and are expected to be in
+one of the following formats:
+.Bl -dash -offset indent
+.It
+RRset (name) query:
+.Ic rrset/name/NAME[/RRTYPE[,...][/BAILIWICK]]
+.It
+RRset (raw) query:
+.Ic rrset/raw/HEX[/RRTYPE[,...][/BAILIWICK]]
+.It
+Rdata (name) query:
+.Ic rdata/name/NAME[/RRTYPE][,...]
+.It
+Rdata (IP address) query:
+.Ic rdata/ip/ADDR[,PFXLEN]
+.It
+Rdata (raw) query:
+.Ic rdata/raw/HEX[/RRTYPE][,...]
+.It
+Change query options:
+.Ic $OPTIONS {options}
+.El
+.Pp
+Where
+.Ic options
+:==
+.Bd -literal -offset 4n
+[-A\ timestamp] [-B\ timestamp] [-c] [-g] [-G]
+[-l\ query_limit] [-L\ output_limit] [-O\ offset]
+.Ed
+.Pp
+$OPTIONS alone on a line allows command line options to be changed mid-batch.
+If no options are given, the query parameters will be reset to those given
+on the command line, if any, or else to defaults.
+.Pp
+A line starting with a # will be ignored as a comment.
+.Pp
+Any internal slash (/) or comma (,) characters within the search names
+of a batch entry must be URL-encoded (for example, %2F or %2C). So, to
+search for the domain "212.0/24.150.104.24.in-addr.arpa" the search
+string would be specified as "212.0%2F150.104.24.in-addr.arpa".
+.Pp
+For raw queries, the hex value is an even number of hexadecimal digits
+specifying a raw octet string.  The "raw" wire-format encodings are
+standardized. The embedding of these in dnstable is documented in the
+.Xr dnstable-encoding 5
+manual page. This topic is explained in detail at
+<https://www.farsightsecurity.com/blog/txt-record/dnsdb-rawhex-20161125>.
+.Pp
+In batch lookup mode, each answer will be followed by a '--' marker, so that
+programmatic users will know when it is safe to send the next lookup, or if
+lookups are pipelined, to know when one answer has ended and another begun.
+This option cannot be mixed with
+.Fl n ,
+.Fl r ,
+.Fl R ,
+or
+.Fl i .
+See the EXAMPLES section for more information on how to use
+.Fl f .
+.Pp
+If two
+.Fl f
+options are given, then each answer will also be preceded by a '++' marker
+giving the query string (as read from the batch input) in order to identify
+each answer when a very large batch input is given, and the '--' marker will
+include an error/noerror indicator and a short message describing the outcome.
+With two
+.Fl f
+options and also
+.Fl m ,
+answers can appear in a different order than the batched questions, and the
+'--' and '++' markers, which are not valid JSON, are therefore suppressed.
+.It Fl g
+return graveled results if available. The default is to return
+aggregated results ("rocks"). Gravel is a feature for providing Volume
+Across Time. Note that not all Passive DNS system APIs support this
+feature, and not all time ranges contain granular results ("gravel").
+.It Fl G
+undo the effect of
+.Fl g ,
+this returning rocks rather than gravel. (Used in $OPTIONS in batch files.)
+.It Fl h
+emit usage and quit.
+.It Fl I
+request information from the API server concerning the API key itself, which
+may include rate limit, query quota, query allowance, or privilege levels; the
+output format and content is dependent on the server_sys argument (see
+.Ic -u
+) and upon the
+.Fl p
+argument.
+.Ic -I -p json
+prints the raw info.
+.Ic -I -p text
+prints
+the information in a more understandable textual form, including converting
+any epoch integer times into UTC formatted times.
+.It Fl i Ar ip
+specify rdata ip ("right-hand side") query.  The value is one of an
+IPv4 address, an IPv6 address, an IPv4 network with prefix length, an
+IPv4 address range, or an IPv6 network with prefix length. If a
+network lookup is being performed, the delimiter between network
+address and prefix length is a single comma (",") character rather
+than the usual slash ("/") character to avoid clashing with the HTTP
+URI path name separator.  See EXAMPLES section for more information
+about separator substitution rules.
+.It Fl J Ar input_file
+opens input_file and reads newline-separated JSON objects therefrom, in
+preference to -f (batch mode) or query mode. This can be used
+to reprocess the output from a prior invocation which used
+.Fl j
+(or
+.Fl p
+json).
+Sorting, limits, and time fences will work. Specification of a
+domain name, RRtype, Rdata, or offset is not supported at this time.
+If input_file is "-" then standard input (stdin) will be read.
+.It Fl j
+synonym for
+.Fl p
+json.
+.It Fl k Ar sort_keys
+when sorting with -s or -S, selects one or more comma separated sort keys,
+among "first", "last", "duration", "count", "name", "type", and/or "data".
+The default order is be "first,last,duration,count,name,type,data"
+(if sorting is requested.)
+Names are sorted right to left (by TLD then 2LD etc). Data is sorted either
+by name if present, or else by numeric value (e.g., for A and AAAA RRsets.)
+Several
+.Fl k
+options can be given after different
+.Fl s
+and
+.Fl S
+options, to sort in ascending order for some keys, descending for others.
+.It Fl l Ar query_limit
+query for that limit's number of responses. If specified as 0 then the DNSDB
+API server will return the maximum limit of results allowed.  If
+.Fl l ,
+is not specified, then the query will not specify a limit, and the DNSDB API
+server may use its default limit.
+.It Fl L Ar output_limit
+clamps the number of objects per response (under
+.Fl [R|r|N|n|i|f] )
+or for all responses (under
+.Fl [fm|ff|ffm] )
+output to
+.Ic output_limit .
+If unset, and if batch and merge modes have not been selected with the
+.Fl f
+and
+.Fl m
+options, then the
+.Fl L
+output limit defaults to the
+.Fl l
+limit's value. Otherwise the default is no output limit.
+.It Fl M Ar max_count
+for the summarize verb, stops summarizing when the count reaches that
+max_count, which must be a positive integer.  The resulting total
+count may exceed max_count as it will include the entire count from
+the last RRset examined.  The default is to not constrain the maximum
+count.  The number of RRsets summarized is also limited by the
+query_limit.
+.It Fl m
+used only with
+.Fl f ,
+this causes multiple (up to ten) API queries to execute in parallel.
+In this mode there will be no "--" marker, and the combined output of
+all queries is what will be subject to sorting, if any. If two
+.Fl f
+flags are specified with
+.Fl m ,
+the output will not be merged, can appear in any order, will be sorted
+separately for each response, and will have normal '--' and '++' markers.
+(See
+.Fl f
+option above.)
+.It Fl N Ar hex[/rrtype[,...]]
+specify raw
+.Ic rdata
+data ("right-hand side") query. Hex is as described above for
+.Fl f .
+.It Fl n Ar name
+specify
+.Ic rdata
+name ("right-hand side") query.  The value is a DNS domain name in
+presentation format, or a left-hand ("*.example.com") or right-hand
+("www.example.*") wildcard domain name. Note that left-hand wildcard queries
+are somewhat more expensive than right-hand wildcard queries.
+.It Fl O Ar offset
+to offset by #offset the results returned by the query.
+This gives you incremental results transfers.
+Cannot be negative. The default is 0 which means no offset.
+.It Fl o Ar timeout
+specifies the timeout, in seconds, for initial connection to database
+server and for each transaction made to that server.
+.It Fl p Ar output_type
+select output type. Specify:
+.Bl -tag -width "minimal"
+.It Cm text
+for presentation output meant to be human-readable. This is the default.
+.Cm dns
+is a synonym, for compatibility with older programmatic callers.
+.It Cm json
+for newline delimited JSON output. See also <https://jsonlines.org/>.
+.It Cm csv
+for comma separated value output. This format is information losing, since
+it cannot express multiple resource records that are in a single RRset.
+Instead, each resource record is expressed in a separate line of output.
+See the
+.Ic DNSDBQ_TIME_FORMAT
+environment variable for controlling how
+timestamps are formatted for this option.
+.It Cm minimal
+outputs only the owner name or rdata, one per line and deduplicated;
+for use by shell scripts. This is incompatible with sorting.
+.El
+.It Fl q
+makes the program reticent about warnings.
+.It Fl R Ar hex[/rrtype[,...][/bailiwick]]
+specify raw
+.Ic rrset
+owner data ("left-hand side") query. Hex is as described above for
+.Fl f .
+.It Fl r Ar name[/type[,...][/bailiwick]]
+specify RRset ("left-hand side") name query. See discussion in
+.Fl n
+above as to the format of and limitations on query names.
+.It Fl s
+sort output in ascending key order. Limits (if any) specified by
+.Fl l
+and
+.Fl L
+will be applied before and after sorting, respectively. In batch
+mode, the
+.Fl f ,
+.Fl ff ,
+and
+.Fl ffm
+option sets will cause each batch entry's result to be sorted
+independently, whereas with
+.Fl fm ,
+all outputs will be combined before sorting. This means with
+.Fl fm
+there will be no output until after the last batch entry has
+been processed, due to store and forward by the sort process.
+.It Fl S
+sort output in descending key order. See discussion for
+.Fl s
+above.
+.It Fl T Ar transform[,...]
+specify one or more transforms to be applied to the output:
+.Bl -tag -width "datefix"
+.It Cm datefix
+always show dates in the format selected by the DNSDBQ_TIME_FORMAT
+environment variable, not in database format.
+.It Cm reverse
+show the DNS owner name (rrname) in TLD-first order (so, COM.EXAMPLE
+rather than EXAMPLE.COM).
+.It Cm chomp
+strip away the trailing dot (.) from the DNS owner name (rrname).
+.It Cm qdetail
+annotate the response to include query details, mostly for use by
+.Fl V Ar summarize.
+This is incompatible with sorting.
+.El
+.It Fl t Ar rrtype[,...]
+specify the resource record type(s) desired.  Default is ANY.
+If present, this option should precede any
+.Fl R ,
+.Fl r ,
+.Fl N ,
+or
+.Fl n
+options.  This option is not allowed if the
+.Fl i
+option is present.  Valid values include those defined in DNS RFCs,
+including ANY.  A special-case supported in DNSDB is ANY-DNSSEC, which
+matches on DS, RRSIG, NSEC, DNSKEY, NSEC3, NSEC3PARAM, and DLV
+resource record types.
+.Pp
+If multiple
+.Ar rrtype
+values are specified, each will be sent separately to the database server,
+consuming quota if there is a quota. Such queries will be sent
+simultaneously in parallel, which may have a load impact on the server.
+.It Fl u Ar server_sys
+specifies the Passive DNS system and thus its syntax for RESTful URLs.
+Can be "dnsdb" or "circl". The default is "dnsdb". See also environment
+variable DNSDBQ_SYSTEM.
+.It Fl V Ar verb
+The verb to perform, i.e. the type of query, either "lookup" or
+"summarize".  The default is the "lookup" verb.  As an option, you can
+specify the "summarize" verb, which gives you an estimate of
+result size.  At a glance, it provides information on when a given
+domain name, IP address or other DNS asset was first-seen and
+last-seen by the global sensor network, as well as the total
+sensor network observation count. This verb respects the database limit
+(see
+.Fl l )
+in that the resulting summary will only be of rows that would have been
+returned by the "lookup" verb. See also
+.Fl M .
+.It Fl 0 Ar function=thing
+This is a developer tool meant to feed automated testing systems.
+.It Fl U
+turns off TLS certificate verification (unsafe).
+.It Fl v
+report the version of dnsdbq and exit.
+.It Fl 4
+use to force connecting to the DNSDB server via IPv4.
+.It Fl 6
+use to force connecting to the DNSDB server via IPv6.
+.It Fl 8
+Normally dnsdbq requires that
+.Fl n
+or
+.Fl r
+arguments are 7-bit ASCII clean.
+Non-ASCII values should be queried using PUNYCODE IDN encoding. This
+.Fl 8
+option allows using arbitrary 8 bit values.
+.El
+.Sh "TIMESTAMP FORMATS"
+Timestamps may be one of following forms.
+.Bl -dash -offset indent
+.It
+positive unsigned integer : in Unix epoch format.
+.It
+negative unsigned integer : negative offset in seconds from now.
+.It
+YYYY-MM-DD [HH:MM:SS] : in absolute form, in UTC time, as DNSDB does its
+fencing using UTC time.
+.It
+%uw%ud%uh%um%us : the relative form with explicit labels (w=weeks, d=days,
+h=hours, m=minutes, s=seconds).  Calculates offset
+from UTC time, as DNSDB does its fencing using UTC time.
+.Pp
+.El
+When using batch mode with the second or forth cases, using relative
+times to now, the value for "now" is set when dnsdbq starts.
+.Pp
+A few examples of how to use timefencing options.
+.Bd -literal -offset 4n
+# tuples ending after Aug 22, 2015 (midnight)
+$ dnsdbq ... -A 2015-08-22
+# tuples starting before Jan 22, 2013 (midnight)
+$ dnsdbq ... -B 2013-01-22
+# tuples starting or ending from 2015 (midnight to midnight)
+$ dnsdbq ... -B 2016-01-01 -A 2015-01-01
+# tuples ending after 2015-08-22 14:36:10
+$ dnsdbq ... -A "2015-08-22 14:36:10"
+# tuples ending within the last 60 minutes
+$ dnsdbq ... -A "-3600"
+# tuples ending after "just now"
+$ date +%s
+1485284066
+$ dnsdbq ... -A 1485284066
+# batch mode with only tuples ending within last 60 minutes,
+# even if feeding inputs to dnsdbq in batch mode takes hours.
+$ dnsdbq -f ... -A "-3600"
+.Ed
+.Sh EXAMPLES
+.Pp
+A few examples of how to specify IP address information.
+.Bd -literal -offset 4n
+# specify a single IPv4 address
+$ dnsdbq ... -i 128.223.32.35
+# specify an IPv4 CIDR
+$ dnsdbq ... -i 128.223.32.0/24
+# specify a range of IPv4 addresses
+$ dnsdbq ... -i 128.223.32.0-128.223.32.32
+.Ed
+.Pp
+Perform an RRset query for a single A record for
+.Ic farsightsecurity.com .
+The output is serialized as JSON and is piped to the
+.Ic jq
+program (a command-line JSON processor, see <https://stedolan.github.io/jq/>)
+for pretty printing.
+.Bd -literal -offset 4n
+$ dnsdbq -r farsightsecurity.com/A -l 1 -j -a | jq .
+{
+  "count": 6350,
+  "time_first": 1380123423,
+  "time_last": 1427869045,
+  "rrname": "farsightsecurity.com.",
+  "rrtype": "A",
+  "bailiwick": "farsightsecurity.com.",
+  "rdata": [
+    "66.160.140.81"
+  ],
+  "dnsdbq-rdata": [
+    {
+      "asinfo": [ 6939 ],
+      "cidr": "66.160.128.0/18",
+      "rdata": "66.160.140.81"
+    }
+  ]
+}
+.Ed
+.Pp
+Note the "dnsdbq-rdata" element added due to the use of the
+.Fl a
+option.
+.Pp
+Perform a batched operation for a several different
+.Ic rrset
+and
+.Ic rdata
+queries. Output is again serialized as JSON and redirected to a file.
+.Bd -literal -offset 4n
+$ cat batch.txt
+rrset/name/\*.wikipedia.org
+rrset/name/\*.dmoz.org
+rrset/raw/0366736902696f00/A
+rdata/name/\*.pbs.org
+rdata/name/\*.opb.org
+rdata/ip/198.35.26.96
+rdata/ip/23.21.237.0,24
+rdata/raw/0b763d73706631202d616c6c
+$ dnsdbq -j -f < batch.txt > batch-output.json
+$ head -1 batch-output.json | jq .
+{
+  "count": 2411,
+  "zone_time_first": 1275401003,
+  "zone_time_last": 1484841664,
+  "rrname": "wikipedia.org.",
+  "rrtype": "NS",
+  "bailiwick": "org.",
+  "rdata": [
+    "ns0.wikimedia.org.",
+    "ns1.wikimedia.org.",
+    "ns2.wikimedia.org."
+  ]
+}
+.Ed
+.Sh ASINFO/CIDR LOOKUPS
+When the
+.Fl a
+option is used, every address seen in a response will cause a DNS lookup
+under the domain specified by the
+.Fl D
+option. This stream of DNS queries might be an intolerable information leak
+depending on the nature of the underlying research, and it could also lead
+to unusably bad performance depending on the placement of your configured
+recursive DNS service.
+.Pp
+For best results, always use an on-server or on-LAN
+recursive DNS service, and consider whether to configure that recursive DNS
+service to be a "stealth secondary" of the zone denoted by the
+.Fl D
+option. For the default
+.Fl D
+value, more information can be found online at
+.Ic "http://archive.routeviews.org/dnszones/" .
+.Pp
+Use of DNS lookups to retrieve ASINFO/CIDR metadata can be extremely fast
+and surveillance-free, but some attention must be paid in order to obtain
+that outcome. For occasional low-volume use, your current recursive DNS
+placement and configuration is probably good enough.
+.Pp
+Note that while Passive DNS information is historical, the ASINFO/CIDR
+annotations made possible using the
+.Fl a
+and
+.Fl D
+options are based on current information. Internet routing system
+information may have changed since the DNS data was recorded. More
+information about this can be found online at
+.Ic "https://github.com/dnsdb/dnsdbq/blob/master/README" .
+.Sh FILES
+.Ic ~/.isc-dnsdb-query.conf ,
+.Ic ~/.dnsdb-query.conf ,
+.Ic /etc/isc-dnsdb-query.conf ,
+or
+.Ic /etc/dnsdb-query.conf :
+configuration file which can specify the API key and other variables. The
+first of these files which is readable will be used, alone, in its
+entirety. See the
+.Ic DNSDBQ_CONFIG_FILE
+environment variable which can specify a different configuration
+file to use.
+.Pp
+The variables which can be set in the configuration file are as
+follows:
+.Bl -tag -width ".Ev DNSDB_API_KEY , APIKEY"
+.It Ev DNSDBQ_SYSTEM
+contains the default value for the
+.Fl u
+option described above. The last setting found for any given variable
+will prevail.
+.It Ev DNSDB_API_KEY , APIKEY
+contains the user's DNSDB apikey (no default).
+.It Ev DNSDB_SERVER
+contains the URL of the DNSDB API server (default is
+https://api.dnsdb.info), and optionally the URI prefix for the
+database.  The default URI prefix for system "dnsdb2" is
+"/dnsdb/v2/lookup"; the default for "dnsdb1" is "/lookup".
+.It Ev CIRCL_AUTH , CIRCL_SERVER
+enable access to a passive DNS system compatible with the CIRCL.LU system.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width ".Ev DNSDBQ_CONFIG_FILE"
+.It Ev DNSDBQ_CONFIG_FILE
+specifies the configuration file to use, overriding the internal search list.
+.It Ev DNSDB_API_KEY
+contains the user's apikey. The older APIKEY environment variable has
+been retired, though it can still be used in the configuration file.
+Note that environment variables are unprotected, and putting one's API
+key in an unprotected place could cause inadvertant sharing.
+.It Ev DNSDB_SERVER
+contains the URL of the DNSDB API server, and optionally a URI prefix to be
+used (default is "/lookup"). If not set, the configuration file is consulted.
+.It Ev DNSDBQ_TIME_FORMAT
+controls how human readable date times are presented in the output.
+If "iso" (the default) then ISO8601 (RFC3339) format is used, for
+example; "2018-09-06T22:48:00Z".  If "csv" then an Excel CSV
+compatible format is used; for example, "2018-09-06 22:48:00".
+.It Ev HTTPS_PROXY
+contains the URL of the HTTPS proxy that you wish to use.  See
+.Ic "https://curl.se/libcurl/c/CURLOPT_PROXY.html"
+for information on its values.
+.El
+.Sh "EXIT STATUS"
+Success (exit status zero) occurs if a connection could be established
+to the back end database server, even if no records matched the search
+criteria. Failure (exit status nonzero) occurs if no connection could be
+established, perhaps due to a network or service failure, or a configuration
+error such as specifying the wrong server hostname.
+.Sh "SEE ALSO"
+.Xr dig 1 ,
+.Xr jq 1 ,
+.Xr libcurl 3 ,
+.Xr dnstable-encoding 5 ,
+.Ic "https://curl.se/docs/http-cookies.html"

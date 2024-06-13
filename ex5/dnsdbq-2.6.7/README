@@ -1,0 +1,249 @@
+/*
+ * Copyright (c) 2014-2021 by Farsight Security, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Table of Contents:
+
+    * Introduction
+    * Dependencies needed
+    * Installing dependencies
+    * Building and installing
+    * Getting Started
+    * Background on ASINFO/CIDR lookups and annotations
+
+Introduction:
+
+    This is a pure C99 program that accesses passive DNS database
+    systems such as:
+	* the DNSDB API server at Farsight Security
+	* the CIRCL pDNS server at Computer Incident Response Center
+	  (LU)
+
+    An API key is required for operation. The command syntax was
+    inspired by a python script called dnsdb_query, but significant
+    departure has occured, largely inspired by a modern understanding
+    of "time fencing" and a desire for new features such as CSV output
+    and JSON reprocessing.
+
+    NOTE: Prior to version 2.5.3, the default pDNS system supported
+    was Farsight Security APIv1, and it was called "dnsdb".  As of
+    version 2.5.3, the default system is Farsight Security APIv2 and
+    system "dnsdb2" is synonymous with "dnsdb".  For APIv1, specify
+    "dnsdb1" using the command line -u option or the DNSDBQ_SYSTEM
+    variable.
+
+
+Dependencies needed:
+    jansson (2.5 or later)
+    libcurl (7.28 or later)
+    modern compiler (clang or GCC)
+
+
+Installing dependencies:
+
+    On Debian 8 Linux:
+	apt-get install libcurl4-openssl-dev
+	apt-get install libjansson-dev
+
+    On CentOS 6 Linux:
+	# Based on PHP instructions for installing libcurl...
+	wget http://curl.haxx.se/download/curl-7.28.1.tar.gz
+	tar xvzf curl-7.28.1.tar.gz
+	cd curl-7.28.1/
+	./configure --with-libssh2 --enable-ares=/usr/local/ --enable-ipv6
+	make
+	make install
+
+	# lib jansson
+	wget http://www.digip.org/jansson/releases/jansson-2.5.tar.gz
+	tar -xpzf jansson-2.5.tar.gz
+	cd jansson-2.5
+	./configure
+	make
+	make install
+
+	echo /usr/local/lib >> /etc/ld.so.conf.d/local.conf
+	ldconfig
+
+    On CentOS 7 Linux:
+	yum install libcurl-devel.x86_64
+	yum install jansson-devel.x86_64
+	yum install centos-release-scl
+	yum install devtoolset-8
+	scl enable devtoolset-8 bash
+	# do the build from that bash
+
+    On CentOS / AlmaLinux / Rocky Linux 8:
+	dnf install gcc jansson.x86_64 jansson-devel.x86_64 libcurl-devel.x86_64
+
+    On FreeBSD 10:
+	pkg install curl jansson
+
+    On macOS:
+	brew install jansson
+	
+    On Amazon Linux 2023 (AWS Ec2):
+	# A plain vanilla Amazon Linux AMI comes with with curl-minimal, and 'make' will 
+	# fail with an error that curl/curl.h is not found. Installing the following packages
+	# will allow dnsdbq to compile on a fresh Amazon Linux 2023 AMI:
+
+	yum install make 
+	yum install git 
+	yum install gcc 
+	yum install libcurl-devel 
+	yum install jansson-devel
+
+
+Building and installing:
+
+    (Assumes you have "git")
+
+    git clone https://github.com/dnsdb/dnsdbq.git
+    cd dnsdbq
+    make install clean
+
+    On FreeBSD, you may need to remove -lresolv in the LIBS line of
+    the Makefile.
+
+    On macOS on Apple M1 processors, Homebrew now defaults to be
+    installed in /opt/homebrew instead of /usr/local.  If that is the
+    case on your system, in the Makefile, uncomment the line
+    #JANSBASE=/opt/homebrew
+
+    On macOS, if you want an almost static dnsdbq binary on macOS,
+    that is, one with minimal non-System library dependencies, you can
+    rebuild dnsdbq with a static jansson library.  That binary could
+    then be deployed on any identical macOS version and architecture.
+
+	1. Find the static jansson library, probably as installed by brew
+	   /usr/local/lib/libjansson.a or /opt/homebrew/lib/libjansson.a
+	2. Change the Makefile's line
+		JANSLIBS = -L$(JANSBASE)/lib -ljansson
+	    to instead specify the static library location, probably to:
+		JANSLIBS = $(JANSBASE)/lib/libjansson.a
+	3. Then run make
+
+
+Getting Started:
+
+    Add the API key to ~/.dnsdb-query.conf in the below given format,
+    APIKEY="YOURAPIKEYHERE"
+
+    If you're interested in purchasing a Farsight DNSDB subscription,
+    please contact sales@farsightsecurity.com.  Farsight also has a
+    grant program for selected researchers, investigative journalists,
+    and cybersecurity workers at some public benefit non-profits.
+    See https://www.farsightsecurity.com/grant-access/
+
+    Here's an example query and output after dnsdbq is compiled: 
+
+    $ ./dnsdbq -r farsightsecurity.com/A -l 1 
+    ;; record times: 2013-09-25 15:37:03 .. 2015-04-01 06:17:25 (~1y ~187d)
+    ;; count: 6350; bailiwick: farsightsecurity.com.
+    farsightsecurity.com.  A  66.160.140.81
+
+Background on ASINFO/CIDR lookups and annotations:
+
+    Annotating IP addresses with ASN information can help an analyst
+    focus their attention on unusual or unexpected ASNs (for example,
+    perhaps a domestic US corporation's IP address inexplicably ended
+    up being originated by a foreign consumer ISP).
+
+    This code has been tested against three sources of ASN information,
+    each of which are valid arguments to the -D parameter.
+
+      1. asn.routeviews.org  (the default value for the -D parameter).
+
+	 Given an IPv4 in reverse order, this returns a space
+	 separated three-tuple:
+	 "ASN" "CIDR prefix" "prefix length"
+
+	 For badly formatted addresses, it returns:
+	 "4294967295" "0" "0"
+
+	 For unknown addresses, it returns no answers.
+
+	 Examples:
+		$ dig +short 34.168.254.125.asn.routeviews.org TXT
+		"23724" "125.254.168.0" "21"
+		$ dig +short a.b.c.d.asn.routeviews.org TXT
+		"4294967295" "0" "0"
+		$ dig +short 0.0.0.128.aspath.routeviews.org TXT
+		$
+
+      2. aspath.routeviews.org
+
+	 The same as asn.routeviews.org, except it returns a
+	 three-tuple: AS path, CIDR prefix, prefix length.
+
+	 Examples:
+		$ dig +short 0.0.0.4.aspath.routeviews.org TXT
+		"3303 3356" "4.0.0.0" "9"
+
+      3. origin.asn.cymru.com
+
+	 Given an IPv4 in reverse order, this returns a pipe-separated
+	 five-tuple:
+	 ASN | CIDR prefix/prefix length | CC | Registry | Allocated date
+
+	 Example:
+		$ dig +short 0.0.0.4.origin.asn.cymru.com TXT
+		"3356 | 4.0.0.0/9 | US | arin | 1992-12-01"
+
+    Function asinfo_from_dns() in asinfo.c has specific code to parse
+    those formats.  asn.routeviews.org and aspath.routeviews.org do
+    not currently handle IPv6 addresses properly, so dnsdbq does not
+    support IPv6 annotation now.
+
+    There is a complication that arises when doing those sort of IP to
+    ASN mappings, however: publicly available IP to ASN zones are
+    based on currently observed IP to ASN mappings, while the IPs that
+    are being mapped may have been seen in passive DNS months or even
+    years earlier, when that IP may have been originated by a
+    different ASN.
+
+    Often the IP to ASN mappings are quite static, in which case
+    historical IPs will map just fine using the current IP to ASN
+    data. On the other hand, some IPs may have been hijacked and used
+    without authorization, or transferred, or otherwise ended up going
+    from one ASN to another.
+
+    Therefore the IP to ASN mapping should be viewed as an
+    experimental best effort feature, and interpreted with care.
+
+    In addition to the issue of potential ASN misalignment, the size
+    and origin of the reported origin IP and prefix length may also
+    have changed over time. For example, a /19 may have been
+    de-aggregated into a set of more specific /24's. Again, we report
+    the state of the world as it is currently seen by the service used
+    for the IP to ASN mapping.
+
+    Other miscellaneous notes:
+
+    * dnsdbq does not support mapping IPv6 addresses to ASNs at this
+      time.
+
+    * In the case of Multiple Origin ASNs, typically IP to ASN
+      services will report one of the multiple ASNs; other origin
+      ASNs may also exist but not be reported.
+
+    * We do not map ASNs to their owner or the owner description
+      string.  Please see WHOIS for information about the entity
+      currently assigned a given ASN.
+
+    We welcome feedback on this feature. Do you use it and find it
+    useful?  Are there IP-to-ASN service providers we've inadvertently
+    omitted?  Share your feedback by writing
+    <support@farsightsecurity.com>.

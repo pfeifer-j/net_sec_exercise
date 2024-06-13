@@ -1,0 +1,192 @@
+/*
+ * Copyright (c) 2014-2021 by Farsight Security, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef PDNS_H_INCLUDED
+#define PDNS_H_INCLUDED 1
+
+#include <jansson.h>
+#include "netio.h"
+
+/* ".main" is the primary jansson library object from a json_loadb().
+ * all the other fields in this structure will point inside main, as
+ * borrowed references, so const.  main must be deallocated
+ * by json_decref() which then invalidates all the other fields.
+ *
+ * ".cof_obj" points to the object that contains time_first...num_results.
+ * If not using SAF encapulation, then cof_obj points to main.
+ * If using SAF encapulation, then saf_cond, saf_msg, and saf_obj are
+ * parsed from main and cof_obj is repointed to saf_obj.
+ *
+ * tup->obj.rrname is always original, tup->rrname is sometimes reversed.
+ * as a result, tup->rrname is always heap-allocated, even if unreversed.
+ */
+struct pdns_json {
+	json_t *main;
+	const json_t *cof_obj, *saf_obj, *saf_cond, *saf_msg,
+		*time_first, *time_last, *zone_first, *zone_last,
+		*bailiwick, *rrname, *rrtype, *rdata,
+		*count, *num_results;
+};
+
+struct pdns_tuple {
+	struct pdns_json  obj;
+	u_long		  time_first, time_last, zone_first, zone_last;
+	const char	 *bailiwick, *rrtype, *rdata, *cond, *msg;
+	char		 *rrname;
+	json_int_t	  count, num_results;
+};
+typedef struct pdns_tuple *pdns_tuple_t;
+typedef const struct pdns_tuple *pdns_tuple_ct;
+
+struct pdns_fence {
+	u_long	first_after, first_before, last_after, last_before;
+};
+typedef const struct pdns_fence *pdns_fence_ct;
+
+struct pdns_system {
+	/* name of this pdns system, as specifiable by the user. */
+	const char	*name;
+
+	/* default URL to reach this pdns API endpoint.  May be overridden. */
+	const char	*base_url;
+
+	/* what encapsulation does this system speak? */
+	encap_e		encap;
+
+	/* start creating a URL corresponding to a command-path string.
+	 * First argument is the input URL path.
+	 * Second argument is an output parameter pointing to the
+	 * separator character (? or &) that the caller should use
+	 * between any further URL parameters.	May be NULL if the
+	 * caller doesn't care.
+	 * Third argument is search parameters.
+	 * Fourth argument is time fencing parameters.
+	 * Fifth argument is true if the query is a meta query, which
+	 * doesn't get regular result processing.
+	 */
+	char *		(*url)(const char *, char *, qparam_ct,
+			       pdns_fence_ct, bool);
+
+	/* send a request for info, such as quota information.
+	 * may be NULL if info requests are not supported by this pDNS system.
+	 */
+	void		(*info)(void);
+
+	/* add authentication information to the fetch request being created.
+	 * may be NULL if auth is not needed by this pDNS system.
+	 */
+	void		(*auth)(fetch_t);
+
+	/* map a non-200 HTTP rcode from a fetch to an error indicator. */
+	const char *	(*status)(fetch_t);
+
+	/* verify that the specified verb is supported by this pdns system.
+	 * Returns NULL if supported; otherwise returns a static error message.
+	 * First argument is the verb.
+	 * Second argument is search parameters.
+	 */
+	const char *	(*verb_ok)(const char *, qparam_ct);
+
+	/* set a configuration key-value pair.
+	 * Returns NULL if ok; otherwise returns a static error message.
+	 * First argument is the key.
+	 * Second argument is the value.
+	 */
+	const char *	(*setval)(const char *, const char *);
+
+	/* check if ready with enough config settings to try API queries.
+	 * Returns NULL if ready; otherwise returns a static error message.
+	 */
+	const char *	(*ready)(void);
+
+	/* drop heap storage. */
+	void		(*destroy)(void);
+};
+typedef const struct pdns_system *pdns_system_ct;
+
+struct presenter {
+	void		(*output)(pdns_tuple_ct, query_ct, writer_t);
+	bool		sortable;
+};
+typedef const struct presenter *presenter_ct;
+
+/* a verb is a specific type of request.  See struct pdns_system
+ * verb_ok() for that function that verifies if the verb and the options
+ * provided is supported by that pDNS system.
+ */
+struct verb {
+	const char	*name;
+	const char	*url_fragment;
+
+	/* review the command line options for constraints being met.
+	 * Returns NULL if ok; otherwise returns a static error message.
+	 */
+	const char *	(*ok)(void);
+
+	/* formatter function for each presentation format */
+	presenter_ct	text, json, csv, minimal;
+};
+typedef const struct verb *verb_ct;
+
+/* query parameters descriptor. */
+struct qdesc {
+	mode_e		mode;
+	char		*thing;
+	char		*rrtype;
+	char		*bailiwick;
+	char		*pfxlen;
+};
+typedef struct qdesc *qdesc_t;
+typedef const struct qdesc *qdesc_ct;
+
+struct counted {
+	int		nlabel;
+	size_t		nchar;
+	size_t		nalnum;
+	size_t		lens[];
+};
+#define COUNTED_SIZE(nlabel) \
+	(sizeof(struct counted) + (unsigned int) nlabel * sizeof(size_t))
+
+bool pprint_json(const char *, size_t, FILE *);
+void present_json_lookup(pdns_tuple_ct, query_ct, writer_t);
+void present_json_summarize(pdns_tuple_ct, query_ct, writer_t);
+void present_text_lookup(pdns_tuple_ct, query_ct, writer_t);
+void present_csv_lookup(pdns_tuple_ct, query_ct, writer_t);
+void present_minimal_lookup(pdns_tuple_ct, query_ct, writer_t);
+void present_text_summarize(pdns_tuple_ct, query_ct, writer_t);
+void present_csv_summarize(pdns_tuple_ct, query_ct, writer_t);
+const char *tuple_make(pdns_tuple_t, const char *, size_t);
+void tuple_unmake(pdns_tuple_t);
+struct counted *countoff(const char *);
+void countoff_debug(const char *, const char *, const struct counted *);
+char *reverse(const char *);
+int pdns_blob(fetch_t, size_t);
+void pick_system(const char *, const char *);
+void read_config(void);
+
+/* Some HTTP status codes we handle specifically */
+#define HTTP_OK		   200
+#define HTTP_NOT_FOUND	   404
+
+#if WANT_PDNS_DNSDB
+#include "pdns_dnsdb.h"
+#endif
+#if WANT_PDNS_CIRCL
+#include "pdns_circl.h"
+#endif
+
+#endif /*PDNS_H_INCLUDED*/
